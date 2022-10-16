@@ -1,6 +1,6 @@
 [package]
 name = "yarg"
-description = "Yet Another Rouglike Game"
+description = "Yet Another Rouglike Game. Based on H. Wolverson roguelike tutorial."
 authors = ["Michał Łoński <michal@lonski.pl>"]
 version = "0.1.0"
 edition = "2021"
@@ -8,3 +8,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rltk = { version = "0.8.7" }
+specs = "0.18.0"
+specs-derive = "0.4.1"
