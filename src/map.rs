@@ -1,5 +1,6 @@
 use super::Rect;
 use std::cmp::{max, min};
+use rltk::{BaseMap, Algorithm2D, Point};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum TileType {
@@ -9,6 +10,8 @@ pub enum TileType {
 
 pub struct Map {
     pub tiles: Vec<TileType>,
+    pub revealed_tiles: Vec<bool>,
+    pub visible_tiles: Vec<bool>,
     pub rooms: Vec<Rect>,
     pub width: i32,
     pub height: i32,
@@ -18,6 +21,8 @@ impl Map {
     pub fn new_map_rooms_and_corridors() -> Map {
         let mut map = Map {
             tiles: vec![TileType::Wall; 80 * 50],
+            revealed_tiles: vec![false; 80 * 50],
+            visible_tiles: vec![false; 80 * 50],
             rooms: Vec::new(),
             width: 80,
             height: 50,
@@ -90,5 +95,17 @@ impl Map {
                 self.tiles[idx as usize] = TileType::Floor;
             }
         }
+    }
+}
+
+impl BaseMap for Map {
+    fn is_opaque(&self, idx: usize) -> bool {
+        self.tiles[idx as usize] == TileType::Wall
+    }
+}
+
+impl Algorithm2D for Map {
+    fn dimensions(&self) -> Point {
+        Point::new(self.width, self.height)
     }
 }
