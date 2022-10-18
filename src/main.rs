@@ -3,6 +3,7 @@ use specs::prelude::*;
 
 pub use components::*;
 pub use damage_system::*;
+pub use game_log::GameLog;
 pub use map::*;
 pub use map_indexing_system::*;
 pub use melee_combat_system::*;
@@ -20,6 +21,8 @@ mod monster_ai_system;
 mod map_indexing_system;
 mod melee_combat_system;
 mod damage_system;
+mod gui;
+mod game_log;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState { AwaitingInput, PreRun, PlayerTurn, MonsterTurn }
@@ -87,6 +90,8 @@ impl GameState for State {
             let idx = map.xy_idx(pos.x, pos.y);
             if map.visible_tiles[idx] { ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph) }
         }
+
+        gui::draw_ui(&self.ecs, ctx);
     }
 }
 
@@ -118,7 +123,7 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
 
         // Move the coordinates
         x += 1;
-        if x > 79 {
+        if x > MAPWIDTH - 1 {
             x = 0;
             y += 1;
         }
@@ -139,6 +144,7 @@ fn main() -> rltk::BError {
 
     register_components(&mut gs.ecs);
     gs.ecs.insert(RunState::PreRun);
+    gs.ecs.insert(GameLog { entries: vec!["Welcome to yarg, yet another roguelike game.".to_string()] });
 
     let map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
