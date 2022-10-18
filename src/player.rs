@@ -5,7 +5,7 @@ use specs::prelude::*;
 
 use crate::{MAPHEIGHT, MAPWIDTH, RunState};
 
-use super::{Map, Player, Position, State, Viewshed, WantsToMelee};
+use super::{GameLog, Item, Map, Player, Position, State, Viewshed, WantsToMelee, WantsToPickupItem};
 use super::CombatStats;
 
 pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
@@ -74,8 +74,38 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
             VirtualKeyCode::Numpad1 |
             VirtualKeyCode::B => try_move_player(-1, 1, &mut gs.ecs),
 
+            // Items
+            VirtualKeyCode::G => get_item(&mut gs.ecs),
+            VirtualKeyCode::I => return RunState::ShowInventory,
+            VirtualKeyCode::D => return RunState::ShowDropItem,
+
             _ => { return RunState::AwaitingInput; }
         },
     }
     RunState::PlayerTurn
+}
+
+fn get_item(ecs: &mut World) {
+    let player_pos = ecs.fetch::<Point>();
+    let player_entity = ecs.fetch::<Entity>();
+    let entities = ecs.entities();
+    let items = ecs.read_storage::<Item>();
+    let positions = ecs.read_storage::<Position>();
+    let mut game_log = ecs.fetch_mut::<GameLog>();
+
+    let mut target_item: Option<Entity> = None;
+    for (item_entity, _item, position) in (&entities, &items, &positions).join() {
+        if position.x == player_pos.x && position.y == player_pos.y {
+            target_item = Some(item_entity);
+            break;
+        }
+    }
+
+    match target_item {
+        None => game_log.entries.push("There is nothing here to pick up.".to_string()),
+        Some(item) => {
+            let mut pickup = ecs.write_storage::<WantsToPickupItem>();
+            pickup.insert(*player_entity, WantsToPickupItem { collected_by: *player_entity, item }).expect("Unable to insert want to pickup");
+        }
+    }
 }

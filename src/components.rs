@@ -12,6 +12,12 @@ pub fn register_components(ecs: &mut World) {
     ecs.register::<CombatStats>();
     ecs.register::<WantsToMelee>();
     ecs.register::<SufferDamage>();
+    ecs.register::<Item>();
+    ecs.register::<Potion>();
+    ecs.register::<InBackpack>();
+    ecs.register::<WantsToPickupItem>();
+    ecs.register::<WantsToDropItem>();
+    ecs.register::<WantsToDrinkPotion>();
 }
 
 #[derive(Component)]
@@ -25,6 +31,7 @@ pub struct Renderable {
     pub glyph: rltk::FontCharType,
     pub fg: rltk::RGB,
     pub bg: rltk::RGB,
+    pub render_order: i32,
 }
 
 #[derive(Component, Debug)]
@@ -59,6 +66,35 @@ pub struct CombatStats {
 #[derive(Component, Debug, Clone)]
 pub struct WantsToMelee {
     pub target: Entity,
+}
+
+#[derive(Component, Debug)]
+pub struct Item {}
+
+#[derive(Component, Debug)]
+pub struct Potion {
+    pub heal_amount: i32,
+}
+
+#[derive(Component, Debug, Clone)]
+pub struct InBackpack {
+    pub owner: Entity,
+}
+
+#[derive(Component, Debug, Clone)]
+pub struct WantsToPickupItem {
+    pub collected_by: Entity,
+    pub item: Entity,
+}
+
+#[derive(Component, Debug)]
+pub struct WantsToDrinkPotion {
+    pub potion: Entity,
+}
+
+#[derive(Component, Debug, Clone)]
+pub struct WantsToDropItem {
+    pub item: Entity,
 }
 
 #[derive(Component, Debug)]
