@@ -13,11 +13,16 @@ pub fn register_components(ecs: &mut World) {
     ecs.register::<WantsToMelee>();
     ecs.register::<SufferDamage>();
     ecs.register::<Item>();
-    ecs.register::<Potion>();
+    ecs.register::<ProvidesHealing>();
     ecs.register::<InBackpack>();
     ecs.register::<WantsToPickupItem>();
     ecs.register::<WantsToDropItem>();
-    ecs.register::<WantsToDrinkPotion>();
+    ecs.register::<WantsToUseItem>();
+    ecs.register::<Consumable>();
+    ecs.register::<Ranged>();
+    ecs.register::<AreaOfEffect>();
+    ecs.register::<InflictsDamage>();
+    ecs.register::<Confusion>();
 }
 
 #[derive(Component)]
@@ -72,7 +77,10 @@ pub struct WantsToMelee {
 pub struct Item {}
 
 #[derive(Component, Debug)]
-pub struct Potion {
+pub struct Consumable {}
+
+#[derive(Component, Debug)]
+pub struct ProvidesHealing {
     pub heal_amount: i32,
 }
 
@@ -87,9 +95,10 @@ pub struct WantsToPickupItem {
     pub item: Entity,
 }
 
-#[derive(Component, Debug)]
-pub struct WantsToDrinkPotion {
-    pub potion: Entity,
+#[derive(Component, Debug, Clone)]
+pub struct WantsToUseItem {
+    pub item: Entity,
+    pub target: Option<rltk::Point>,
 }
 
 #[derive(Component, Debug, Clone)]
@@ -102,12 +111,34 @@ pub struct SufferDamage {
     pub amount: Vec<i32>,
 }
 
+#[derive(Component, Debug)]
+pub struct Ranged {
+    pub range: i32,
+}
+
+#[derive(Component, Debug)]
+pub struct InflictsDamage {
+    pub damage: i32,
+}
+
+#[derive(Component, Debug)]
+pub struct AreaOfEffect {
+    pub radius: i32,
+}
+
+#[derive(Component, Debug)]
+pub struct Confusion {
+    pub turns: i32,
+}
+
 impl SufferDamage {
     pub fn new_damage(store: &mut WriteStorage<SufferDamage>, victim: Entity, amount: i32) {
         if let Some(suffering) = store.get_mut(victim) {
             suffering.amount.push(amount);
         } else {
-            let dmg = SufferDamage { amount: vec![amount] };
+            let dmg = SufferDamage {
+                amount: vec![amount],
+            };
             store.insert(victim, dmg).expect("Unable to insert damage");
         }
     }

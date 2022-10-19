@@ -1,4 +1,4 @@
-use rltk::{GameState, Point, RGB, Rltk};
+use rltk::{GameState, Point, Rltk, RGB};
 use specs::prelude::*;
 
 pub use components::*;
@@ -6,7 +6,7 @@ pub use damage_system::*;
 pub use game_log::GameLog;
 pub use inventory_system::ItemCollectionSystem;
 pub use inventory_system::ItemDropSystem;
-pub use inventory_system::PotionUseSystem;
+pub use inventory_system::ItemUseSystem;
 pub use map::*;
 pub use map_indexing_system::*;
 pub use melee_combat_system::*;
@@ -16,21 +16,29 @@ pub use rect::*;
 pub use visibility_system::*;
 
 mod components;
-mod player;
+mod damage_system;
+mod game_log;
+mod gui;
+mod inventory_system;
 mod map;
-mod rect;
-mod visibility_system;
-mod monster_ai_system;
 mod map_indexing_system;
 mod melee_combat_system;
-mod damage_system;
-mod gui;
-mod game_log;
+mod monster_ai_system;
+mod player;
+mod rect;
 mod spawner;
-mod inventory_system;
+mod visibility_system;
 
 #[derive(PartialEq, Copy, Clone)]
-pub enum RunState { AwaitingInput, PreRun, PlayerTurn, MonsterTurn, ShowInventory, ShowDropItem }
+pub enum RunState {
+    AwaitingInput,
+    PreRun,
+    PlayerTurn,
+    MonsterTurn,
+    ShowInventory,
+    ShowDropItem,
+    ShowTargeting { range: i32, item: Entity },
+}
 
 pub struct State {
     pub ecs: World,
@@ -50,7 +58,7 @@ impl State {
         damage.run_now(&self.ecs);
         let mut pickup = ItemCollectionSystem {};
         pickup.run_now(&self.ecs);
-        let mut potions = PotionUseSystem {};
+        let mut potions = ItemUseSystem {};
         potions.run_now(&self.ecs);
         let mut drop_items = ItemDropSystem {};
         drop_items.run_now(&self.ecs);
@@ -73,7 +81,9 @@ impl GameState for State {
             data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
             for (pos, render) in data.iter() {
                 let idx = map.xy_idx(pos.x, pos.y);
-                if map.visible_tiles[idx] { ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph) }
+                if map.visible_tiles[idx] {
+                    ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph)
+                }
             }
 
             gui::draw_ui(&self.ecs, ctx);
@@ -101,6 +111,26 @@ impl GameState for State {
                 self.run_systems();
                 new_run_state = RunState::AwaitingInput;
             }
+            RunState::ShowTargeting { range, item } => {
+                let result = gui::ranged_target(self, ctx, range);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => new_run_state = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let mut intent = self.ecs.write_storage::<WantsToUseItem>();
+                        intent
+                            .insert(
+                                *self.ecs.fetch::<Entity>(),
+                                WantsToUseItem {
+                                    item,
+                                    target: result.1,
+                                },
+                            )
+                            .expect("Unable to insert intent");
+                        new_run_state = RunState::PlayerTurn;
+                    }
+                }
+            }
             RunState::ShowInventory => {
                 let result = gui::show_inventory(self, ctx);
                 match result.0 {
@@ -108,9 +138,26 @@ impl GameState for State {
                     gui::ItemMenuResult::NoResponse => {}
                     gui::ItemMenuResult::Selected => {
                         let item_entity = result.1.unwrap();
-                        let mut intent = self.ecs.write_storage::<WantsToDrinkPotion>();
-                        intent.insert(*self.ecs.fetch::<Entity>(), WantsToDrinkPotion { potion: item_entity }).expect("Unable to insert intent");
-                        new_run_state = RunState::PlayerTurn;
+                        let is_ranged = self.ecs.read_storage::<Ranged>();
+                        let is_item_ranged = is_ranged.get(item_entity);
+                        if let Some(is_item_ranged) = is_item_ranged {
+                            new_run_state = RunState::ShowTargeting {
+                                range: is_item_ranged.range,
+                                item: item_entity,
+                            };
+                        } else {
+                            let mut intent = self.ecs.write_storage::<WantsToUseItem>();
+                            intent
+                                .insert(
+                                    *self.ecs.fetch::<Entity>(),
+                                    WantsToUseItem {
+                                        item: item_entity,
+                                        target: None,
+                                    },
+                                )
+                                .expect("Unable to insert intent");
+                            new_run_state = RunState::PlayerTurn;
+                        }
                     }
                 }
             }
@@ -122,7 +169,12 @@ impl GameState for State {
                     gui::ItemMenuResult::Selected => {
                         let item_entity = result.1.unwrap();
                         let mut intent = self.ecs.write_storage::<WantsToDropItem>();
-                        intent.insert(*self.ecs.fetch::<Entity>(), WantsToDropItem { item: item_entity }).expect("Unable to insert intent");
+                        intent
+                            .insert(
+                                *self.ecs.fetch::<Entity>(),
+                                WantsToDropItem { item: item_entity },
+                            )
+                            .expect("Unable to insert intent");
                         new_run_state = RunState::PlayerTurn;
                     }
                 }
@@ -137,7 +189,6 @@ impl GameState for State {
         delete_the_dead(&mut self.ecs);
     }
 }
-
 
 pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
     let map = ecs.fetch::<Map>();
@@ -160,7 +211,9 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
                     fg = RGB::from_f32(0., 1.0, 0.);
                 }
             }
-            if !map.visible_tiles[idx] { fg = fg.to_greyscale() }
+            if !map.visible_tiles[idx] {
+                fg = fg.to_greyscale()
+            }
             ctx.set(x, y, fg, RGB::from_f32(0., 0., 0.), glyph);
         }
 
@@ -181,14 +234,14 @@ fn main() -> rltk::BError {
         .build()?;
     context.with_post_scanlines(true);
 
-    let mut gs = State {
-        ecs: World::new(),
-    };
+    let mut gs = State { ecs: World::new() };
 
     register_components(&mut gs.ecs);
     gs.ecs.insert(RunState::PreRun);
     gs.ecs.insert(rltk::RandomNumberGenerator::new());
-    gs.ecs.insert(GameLog { entries: vec!["Welcome to yarg, yet another roguelike game.".to_string()] });
+    gs.ecs.insert(GameLog {
+        entries: vec!["Welcome to yarg, yet another roguelike game.".to_string()],
+    });
 
     let map = Map::new_map_rooms_and_corridors();
 
