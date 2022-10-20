@@ -1,19 +1,19 @@
-use std::fs;
-use std::fs::File;
-use std::path::Path;
-
-use specs::error::NoError;
 use specs::prelude::*;
 use specs::saveload::{
     DeserializeComponents, MarkedBuilder, SerializeComponents, SimpleMarker, SimpleMarkerAllocator,
 };
+use std::convert::Infallible;
+use std::fs;
+use std::fs::File;
+use std::path::Path;
 
+pub type NoError = Infallible;
 use super::components::*;
 
 macro_rules! serialize_individually {
     ($ecs:expr, $ser:expr, $data:expr, $( $type:ty),*) => {
         $(
-        SerializeComponents::<NoError, SimpleMarker<SerializeMe>>::serialize(
+        SerializeComponents::<std::convert::Infallible, SimpleMarker<SerializeMe>>::serialize(
             &( $ecs.read_storage::<$type>(), ),
             &$data.0,
             &$data.1,
@@ -71,7 +71,9 @@ pub fn save_game(ecs: &mut World) {
             WantsToPickupItem,
             WantsToUseItem,
             WantsToDropItem,
-            SerializationHelper
+            SerializationHelper,
+            Equippable,
+            Equipped
         );
     }
 
@@ -145,7 +147,9 @@ pub fn load_game(ecs: &mut World) {
             WantsToPickupItem,
             WantsToUseItem,
             WantsToDropItem,
-            SerializationHelper
+            SerializationHelper,
+            Equippable,
+            Equipped
         );
     }
 

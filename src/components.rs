@@ -1,11 +1,13 @@
+use std::convert::Infallible;
+
 use rltk::RGB;
-use specs::error::NoError;
+use serde::{Deserialize, Serialize};
 use specs::prelude::*;
 use specs::saveload::SimpleMarker;
 use specs::saveload::{ConvertSaveload, Marker};
 use specs_derive::*;
 
-use serde::{Deserialize, Serialize};
+pub type NoError = Infallible;
 
 pub fn register_components(ecs: &mut World) {
     ecs.register::<Position>();
@@ -31,6 +33,43 @@ pub fn register_components(ecs: &mut World) {
     ecs.register::<Confusion>();
     ecs.register::<SimpleMarker<SerializeMe>>();
     ecs.register::<SerializationHelper>();
+    ecs.register::<Equippable>();
+    ecs.register::<Equipped>();
+    ecs.register::<MeleePowerBonus>();
+    ecs.register::<DefenseBonus>();
+    ecs.register::<WantsToRemoveItem>();
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct WantsToRemoveItem {
+    pub item: Entity,
+}
+
+#[derive(Component, ConvertSaveload, Clone)]
+pub struct MeleePowerBonus {
+    pub power: i32,
+}
+
+#[derive(Component, ConvertSaveload, Clone)]
+pub struct DefenseBonus {
+    pub defense: i32,
+}
+
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
+pub enum EquipmentSlot {
+    Melee,
+    Shield,
+}
+
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct Equippable {
+    pub slot: EquipmentSlot,
+}
+
+#[derive(Component, ConvertSaveload, Clone)]
+pub struct Equipped {
+    pub owner: Entity,
+    pub slot: EquipmentSlot,
 }
 
 #[derive(Component, ConvertSaveload, Clone)]
