@@ -6,8 +6,10 @@ use super::{CombatStats, GameLog, Name, Player, SufferDamage};
 pub struct DamageSystem {}
 
 impl<'a> System<'a> for DamageSystem {
-    type SystemData = (WriteStorage<'a, CombatStats>,
-                       WriteStorage<'a, SufferDamage>);
+    type SystemData = (
+        WriteStorage<'a, CombatStats>,
+        WriteStorage<'a, SufferDamage>,
+    );
 
     fn run(&mut self, data: Self::SystemData) {
         let (mut stats, mut damage) = data;
@@ -19,7 +21,6 @@ impl<'a> System<'a> for DamageSystem {
         damage.clear();
     }
 }
-
 
 pub fn delete_the_dead(ecs: &mut World) {
     let mut dead: Vec<Entity> = Vec::new();
@@ -41,7 +42,7 @@ pub fn delete_the_dead(ecs: &mut World) {
                         }
                         dead.push(entity)
                     }
-                    Some(_) => console::log("You are dead")
+                    Some(_) => console::log("You are dead"),
                 }
             }
         }

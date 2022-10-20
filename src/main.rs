@@ -15,6 +15,7 @@ pub use map_indexing_system::*;
 pub use melee_combat_system::*;
 pub use monster_ai_system::*;
 pub use player::*;
+pub use random_table::RandomTable;
 pub use rect::*;
 pub use visibility_system::*;
 
@@ -28,6 +29,7 @@ mod map_indexing_system;
 mod melee_combat_system;
 mod monster_ai_system;
 mod player;
+mod random_table;
 mod rect;
 mod saveload_system;
 mod spawner;
@@ -119,16 +121,17 @@ impl State {
 
         // Build a new map and place the player
         let world_map;
+        let current_depth;
         {
             let mut world_map_resource = self.ecs.write_resource::<Map>();
-            let current_depth = world_map_resource.depth;
+            current_depth = world_map_resource.depth;
             *world_map_resource = Map::new_map_rooms_and_corridors(current_depth + 1);
             world_map = world_map_resource.clone();
         }
 
         // Spawn bad guys
         for room in world_map.rooms.iter().skip(1) {
-            spawner::spawn_room(&mut self.ecs, room);
+            spawner::spawn_room(&mut self.ecs, room, current_depth + 1);
         }
 
         // Place the player and update resources
@@ -342,7 +345,7 @@ fn main() -> rltk::BError {
 
     gs.ecs.insert(rltk::RandomNumberGenerator::new());
     for room in map.rooms.iter().skip(1) {
-        spawner::spawn_room(&mut gs.ecs, room);
+        spawner::spawn_room(&mut gs.ecs, room, 1);
     }
 
     gs.ecs.insert(map);
