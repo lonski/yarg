@@ -3,12 +3,12 @@ use std::cmp::{max, min};
 use rltk::{Point, Rltk, VirtualKeyCode};
 use specs::prelude::*;
 
-use crate::{RunState, MAPHEIGHT, MAPWIDTH};
-
 use super::CombatStats;
 use super::{
-    GameLog, Item, Map, Player, Position, State, Viewshed, WantsToMelee, WantsToPickupItem,
+    GameLog, Item, Map, Player, Position, State, TileType, Viewshed, WantsToMelee,
+    WantsToPickupItem,
 };
+use super::{RunState, MAPHEIGHT, MAPWIDTH};
 
 pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
@@ -94,12 +94,34 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
             // Menu
             VirtualKeyCode::Escape => return RunState::SaveGame,
 
+            // Level changes
+            VirtualKeyCode::Period => {
+                if try_next_level(&mut gs.ecs) {
+                    return RunState::NextLevel;
+                }
+            }
+
             _ => {
                 return RunState::AwaitingInput;
             }
         },
     }
     RunState::PlayerTurn
+}
+
+pub fn try_next_level(ecs: &mut World) -> bool {
+    let player_pos = ecs.fetch::<Point>();
+    let map = ecs.fetch::<Map>();
+    let player_idx = map.xy_idx(player_pos.x, player_pos.y);
+    if map.tiles[player_idx] == TileType::DownStairs {
+        true
+    } else {
+        let mut game_log = ecs.fetch_mut::<GameLog>();
+        game_log
+            .entries
+            .push("There is no way down from here.".to_string());
+        false
+    }
 }
 
 fn get_item(ecs: &mut World) {

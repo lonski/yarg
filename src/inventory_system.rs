@@ -189,6 +189,7 @@ impl<'a> System<'a> for ItemUseSystem {
                 }
             }
             for mob in add_confusion.iter() {
+                used_item = true;
                 confused
                     .insert(mob.0, Confusion { turns: mob.1 })
                     .expect("Unable to insert status");

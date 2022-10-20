@@ -28,6 +28,7 @@ pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
         RGB::named(rltk::BLACK),
     );
 
+    // draw hp bar
     let combat_stats = ecs.read_storage::<CombatStats>();
     let players = ecs.read_storage::<Player>();
     for (_player, stats) in (&players, &combat_stats).join() {
@@ -49,6 +50,17 @@ pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
             RGB::named(rltk::BLACK),
         );
     }
+
+    // draw depth
+    let map = ecs.fetch::<Map>();
+    let depth = format!("Depth: {}", map.depth);
+    ctx.print_color(
+        2,
+        43,
+        RGB::named(rltk::YELLOW),
+        RGB::named(rltk::BLACK),
+        &depth,
+    );
 
     // Draw mouse cursor
     let mouse_pos = ctx.mouse_pos();
