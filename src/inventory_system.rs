@@ -1,13 +1,12 @@
 use serde::{Deserialize, Serialize};
 use specs::prelude::*;
 
-use crate::{Consumable, HungerClock, ProvidesFood};
-
 use super::{
     AreaOfEffect, CombatStats, Confusion, Equippable, Equipped, GameLog, HungerState, InBackpack,
-    InflictsDamage, Map, Name, ParticleBuilder, Position, ProvidesHealing, SufferDamage,
+    InflictsDamage, Map, Name, ParticleBuilder, Position, ProvidesHealing, RunState, SufferDamage,
     WantsToDropItem, WantsToPickupItem, WantsToRemoveItem, WantsToUseItem,
 };
+use super::{Consumable, HungerClock, MagicMapper, ProvidesFood};
 
 pub struct ItemCollectionSystem {}
 
@@ -56,7 +55,7 @@ impl<'a> System<'a> for ItemUseSystem {
     type SystemData = (
         ReadExpect<'a, Entity>,
         WriteExpect<'a, GameLog>,
-        ReadExpect<'a, Map>,
+        WriteExpect<'a, Map>,
         Entities<'a>,
         WriteStorage<'a, WantsToUseItem>,
         ReadStorage<'a, Name>,
@@ -74,6 +73,8 @@ impl<'a> System<'a> for ItemUseSystem {
         ReadStorage<'a, Position>,
         ReadStorage<'a, ProvidesFood>,
         WriteStorage<'a, HungerClock>,
+        ReadStorage<'a, MagicMapper>,
+        WriteExpect<'a, RunState>,
     );
 
     #[allow(clippy::cognitive_complexity)]
@@ -81,7 +82,7 @@ impl<'a> System<'a> for ItemUseSystem {
         let (
             player_entity,
             mut gamelog,
-            map,
+            mut map,
             entities,
             mut wants_use,
             names,
@@ -99,6 +100,8 @@ impl<'a> System<'a> for ItemUseSystem {
             positions,
             provides_food,
             mut hunger_clocks,
+            magic_mapper,
+            mut run_state,
         ) = data;
 
         for (entity, useitem) in (&entities, &wants_use).join() {
@@ -332,6 +335,19 @@ impl<'a> System<'a> for ItemUseSystem {
                             names.get(useitem.item).unwrap().name
                         ));
                     }
+                }
+            }
+
+            // If its a magic mapper...
+            let is_mapper = magic_mapper.get(useitem.item);
+            match is_mapper {
+                None => {}
+                Some(_) => {
+                    used_item = true;
+                    gamelog
+                        .entries
+                        .push("The map is revealed to you!".to_string());
+                    *run_state = RunState::MagicMapReveal { row: 0 };
                 }
             }
         }

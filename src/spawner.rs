@@ -12,17 +12,18 @@ const MAX_ITEMS: i32 = 2;
 
 fn room_table(map_depth: i32) -> RandomTable {
     RandomTable::new()
-        .add("Goblin", 10)
-        .add("Orc", 1 + map_depth)
-        .add("Health Potion", 5)
+        .add("Goblin", 30)
+        .add("Orc", 20 + map_depth)
+        .add("Health Potion", 7)
         .add("Fireball Scroll", 2 + map_depth)
         .add("Confusion Scroll", 2 + map_depth)
         .add("Magic Missile Scroll", 4)
-        .add("Dagger", 2)
-        .add("Shield", 2)
+        .add("Dagger", 3)
+        .add("Shield", 3)
         .add("Longsword", map_depth - 1)
         .add("Tower Shield", map_depth - 1)
         .add("Rations", 10)
+        .add("Magic Mapping Scroll", 1)
 }
 
 /// Fills a room with stuff!
@@ -69,6 +70,7 @@ pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) {
             "Longsword" => longsword(ecs, x, y),
             "Tower Shield" => tower_shield(ecs, x, y),
             "Rations" => rations(ecs, x, y),
+            "Magic Mapping Scroll" => magic_mapping_scroll(ecs, x, y),
             _ => {}
         }
     }
@@ -352,6 +354,25 @@ fn rations(ecs: &mut World, x: i32, y: i32) {
         })
         .with(Item {})
         .with(ProvidesFood {})
+        .with(Consumable {})
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
+
+fn magic_mapping_scroll(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(Position { x, y })
+        .with(Renderable {
+            glyph: rltk::to_cp437(')'),
+            fg: RGB::named(rltk::CYAN3),
+            bg: RGB::named(rltk::BLACK),
+            render_order: 2,
+        })
+        .with(Name {
+            name: "Scroll of Magic Mapping".to_string(),
+        })
+        .with(Item {})
+        .with(MagicMapper {})
         .with(Consumable {})
         .marked::<SimpleMarker<SerializeMe>>()
         .build();

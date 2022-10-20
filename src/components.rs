@@ -41,7 +41,11 @@ pub fn register_components(ecs: &mut World) {
     ecs.register::<ParticleLifetime>();
     ecs.register::<HungerClock>();
     ecs.register::<ProvidesFood>();
+    ecs.register::<MagicMapper>();
 }
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct MagicMapper {}
 
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct ProvidesFood {}

@@ -16,6 +16,7 @@ pub use particle_system::ParticleBuilder;
 pub use player::*;
 pub use random_table::RandomTable;
 pub use rect::*;
+pub use rex_assets::RexAssets;
 pub use visibility_system::*;
 
 mod components;
@@ -32,6 +33,7 @@ mod particle_system;
 mod player;
 mod random_table;
 mod rect;
+mod rex_assets;
 mod saveload_system;
 mod spawner;
 mod visibility_system;
@@ -55,6 +57,9 @@ pub enum RunState {
     NextLevel,
     ShowRemoveItem,
     GameOver,
+    MagicMapReveal {
+        row: i32,
+    },
 }
 
 pub struct State {
@@ -274,11 +279,28 @@ impl GameState for State {
             }
             RunState::PlayerTurn => {
                 self.run_systems();
-                new_run_state = RunState::MonsterTurn;
+                match *self.ecs.fetch::<RunState>() {
+                    RunState::MagicMapReveal { .. } => {
+                        new_run_state = RunState::MagicMapReveal { row: 0 }
+                    }
+                    _ => new_run_state = RunState::MonsterTurn,
+                }
             }
             RunState::MonsterTurn => {
                 self.run_systems();
                 new_run_state = RunState::AwaitingInput;
+            }
+            RunState::MagicMapReveal { row } => {
+                let mut map = self.ecs.fetch_mut::<Map>();
+                for x in 0..MAPWIDTH {
+                    let idx = map.xy_idx(x as i32, row);
+                    map.revealed_tiles[idx] = true;
+                }
+                if row as usize == MAPHEIGHT - 1 {
+                    new_run_state = RunState::MonsterTurn;
+                } else {
+                    new_run_state = RunState::MagicMapReveal { row: row + 1 };
+                }
             }
             RunState::ShowTargeting { range, item } => {
                 let result = gui::ranged_target(self, ctx, range);
@@ -431,9 +453,10 @@ fn main() -> rltk::BError {
     let mut gs = State { ecs: World::new() };
 
     register_components(&mut gs.ecs);
+    gs.ecs.insert(RexAssets::new());
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
     gs.ecs.insert(rltk::RandomNumberGenerator::new());
-    gs.ecs.insert(particle_system::ParticleBuilder::new());
+    gs.ecs.insert(ParticleBuilder::new());
 
     let map = Map::new_map_rooms_and_corridors(1);
     let (player_x, player_y) = map.rooms[0].center();
