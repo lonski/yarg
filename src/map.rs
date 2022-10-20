@@ -1,12 +1,12 @@
 use std::cmp::{max, min};
+use std::collections::HashSet;
 
 use rltk::{Algorithm2D, BaseMap, Point};
 use serde::{Deserialize, Serialize};
 use specs::Entity;
 
-use crate::{Rltk, World, RGB};
-
 use super::Rect;
+use super::{Rltk, World, RGB};
 
 pub const MAPWIDTH: usize = 80;
 pub const MAPHEIGHT: usize = 43;
@@ -26,6 +26,7 @@ pub struct Map {
     pub visible_tiles: Vec<bool>,
     pub blocked: Vec<bool>,
     pub rooms: Vec<Rect>,
+    pub bloodstains: HashSet<usize>,
     pub width: i32,
     pub height: i32,
     pub depth: i32,
@@ -44,6 +45,7 @@ impl Map {
             blocked: vec![false; MAPCOUNT],
             tile_content: vec![Vec::new(); MAPCOUNT],
             rooms: Vec::new(),
+            bloodstains: HashSet::new(),
             width: MAPWIDTH as i32,
             height: MAPHEIGHT as i32,
             depth: new_depth,
@@ -212,6 +214,7 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
         if map.revealed_tiles[idx] {
             let glyph;
             let mut fg;
+            let mut bg = RGB::from_f32(0., 0., 0.);
             match tile {
                 TileType::Floor => {
                     glyph = rltk::to_cp437('.');
@@ -226,10 +229,14 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
                     fg = RGB::from_f32(0., 1.0, 1.0);
                 }
             }
-            if !map.visible_tiles[idx] {
-                fg = fg.to_greyscale()
+            if map.bloodstains.contains(&idx) {
+                bg = RGB::from_f32(0.75, 0., 0.);
             }
-            ctx.set(x, y, fg, RGB::from_f32(0., 0., 0.), glyph);
+            if !map.visible_tiles[idx] {
+                fg = fg.to_greyscale();
+                bg = RGB::from_f32(0., 0., 0.); // Don't show stains out of visual range
+            }
+            ctx.set(x, y, fg, bg, glyph);
         }
 
         // Move the coordinates
