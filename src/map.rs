@@ -1,6 +1,7 @@
 use std::cmp::{max, min};
 
 use rltk::{Algorithm2D, BaseMap, Point};
+use serde::{Deserialize, Serialize};
 use specs::Entity;
 
 use super::Rect;
@@ -9,21 +10,25 @@ pub const MAPWIDTH: usize = 80;
 pub const MAPHEIGHT: usize = 43;
 pub const MAPCOUNT: usize = MAPHEIGHT * MAPWIDTH;
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
 pub enum TileType {
     Wall,
     Floor,
 }
 
+#[derive(Default, Serialize, Deserialize, Clone)]
 pub struct Map {
     pub tiles: Vec<TileType>,
     pub revealed_tiles: Vec<bool>,
     pub visible_tiles: Vec<bool>,
     pub blocked: Vec<bool>,
-    pub tile_content: Vec<Vec<Entity>>,
     pub rooms: Vec<Rect>,
     pub width: i32,
     pub height: i32,
+
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
+    pub tile_content: Vec<Vec<Entity>>,
 }
 
 impl Map {
@@ -53,7 +58,9 @@ impl Map {
             let new_room = Rect::new(x, y, w, h);
             let mut ok = true;
             for other_room in map.rooms.iter() {
-                if new_room.intersect(other_room) { ok = false }
+                if new_room.intersect(other_room) {
+                    ok = false
+                }
             }
             if ok {
                 map.apply_room_to_map(&new_room);
@@ -115,7 +122,9 @@ impl Map {
     }
 
     fn is_exit_valid(&self, x: i32, y: i32) -> bool {
-        if x < 1 || x > self.width - 1 || y < 1 || y > self.height - 1 { return false; }
+        if x < 1 || x > self.width - 1 || y < 1 || y > self.height - 1 {
+            return false;
+        }
         let idx = self.xy_idx(x, y);
         !self.blocked[idx]
     }
@@ -139,16 +148,32 @@ impl BaseMap for Map {
         let w = self.width as usize;
 
         // Cardinal directions
-        if self.is_exit_valid(x - 1, y) { exits.push((idx - 1, 1.0)) };
-        if self.is_exit_valid(x + 1, y) { exits.push((idx + 1, 1.0)) };
-        if self.is_exit_valid(x, y - 1) { exits.push((idx - w, 1.0)) };
-        if self.is_exit_valid(x, y + 1) { exits.push((idx + w, 1.0)) };
+        if self.is_exit_valid(x - 1, y) {
+            exits.push((idx - 1, 1.0))
+        };
+        if self.is_exit_valid(x + 1, y) {
+            exits.push((idx + 1, 1.0))
+        };
+        if self.is_exit_valid(x, y - 1) {
+            exits.push((idx - w, 1.0))
+        };
+        if self.is_exit_valid(x, y + 1) {
+            exits.push((idx + w, 1.0))
+        };
 
         // Diagonals
-        if self.is_exit_valid(x - 1, y - 1) { exits.push(((idx - w) - 1, 1.45)); }
-        if self.is_exit_valid(x + 1, y - 1) { exits.push(((idx - w) + 1, 1.45)); }
-        if self.is_exit_valid(x - 1, y + 1) { exits.push(((idx + w) - 1, 1.45)); }
-        if self.is_exit_valid(x + 1, y + 1) { exits.push(((idx + w) + 1, 1.45)); }
+        if self.is_exit_valid(x - 1, y - 1) {
+            exits.push(((idx - w) - 1, 1.45));
+        }
+        if self.is_exit_valid(x + 1, y - 1) {
+            exits.push(((idx - w) + 1, 1.45));
+        }
+        if self.is_exit_valid(x - 1, y + 1) {
+            exits.push(((idx + w) - 1, 1.45));
+        }
+        if self.is_exit_valid(x + 1, y + 1) {
+            exits.push(((idx + w) + 1, 1.45));
+        }
 
         exits
     }
