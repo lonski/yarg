@@ -5,8 +5,8 @@ use specs::prelude::*;
 
 use super::CombatStats;
 use super::{
-    GameLog, HungerClock, HungerState, Item, Map, Monster, Player, Position, State, TileType,
-    Viewshed, WantsToMelee, WantsToPickupItem,
+    EntityMoved, GameLog, HungerClock, HungerState, Item, Map, Monster, Player, Position, State,
+    TileType, Viewshed, WantsToMelee, WantsToPickupItem,
 };
 use super::{RunState, MAPHEIGHT, MAPWIDTH};
 
@@ -19,6 +19,7 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let combat_stats = ecs.read_storage::<CombatStats>();
     let entities = ecs.entities();
     let mut wants_to_melee = ecs.write_storage::<WantsToMelee>();
+    let mut entity_moved = ecs.write_storage::<EntityMoved>();
 
     for (entity, _player, pos, viewshed) in
         (&entities, &players, &mut positions, &mut viewsheds).join()
@@ -53,6 +54,9 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
             ppos.x = pos.x;
             ppos.y = pos.y;
             viewshed.dirty = true;
+            entity_moved
+                .insert(entity, EntityMoved {})
+                .expect("Unable to insert marker");
         }
     }
 }

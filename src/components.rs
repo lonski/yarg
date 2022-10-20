@@ -2,6 +2,7 @@ use std::convert::Infallible;
 
 use rltk::RGB;
 use serde::{Deserialize, Serialize};
+use serde_json::map::Entry;
 use specs::prelude::*;
 use specs::saveload::SimpleMarker;
 use specs::saveload::{ConvertSaveload, Marker};
@@ -42,7 +43,23 @@ pub fn register_components(ecs: &mut World) {
     ecs.register::<HungerClock>();
     ecs.register::<ProvidesFood>();
     ecs.register::<MagicMapper>();
+    ecs.register::<Hidden>();
+    ecs.register::<EntryTrigger>();
+    ecs.register::<EntityMoved>();
+    ecs.register::<SingleActivation>();
 }
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct SingleActivation {}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct EntityMoved {}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct EntryTrigger {}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct Hidden {}
 
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct MagicMapper {}
