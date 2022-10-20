@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 use specs::prelude::*;
 
-use crate::Consumable;
+use crate::{Consumable, HungerClock, ProvidesFood};
 
 use super::{
-    AreaOfEffect, CombatStats, Confusion, Equippable, Equipped, GameLog, InBackpack,
+    AreaOfEffect, CombatStats, Confusion, Equippable, Equipped, GameLog, HungerState, InBackpack,
     InflictsDamage, Map, Name, ParticleBuilder, Position, ProvidesHealing, SufferDamage,
     WantsToDropItem, WantsToPickupItem, WantsToRemoveItem, WantsToUseItem,
 };
@@ -72,6 +72,8 @@ impl<'a> System<'a> for ItemUseSystem {
         WriteStorage<'a, InBackpack>,
         WriteExpect<'a, ParticleBuilder>,
         ReadStorage<'a, Position>,
+        ReadStorage<'a, ProvidesFood>,
+        WriteStorage<'a, HungerClock>,
     );
 
     #[allow(clippy::cognitive_complexity)]
@@ -95,6 +97,8 @@ impl<'a> System<'a> for ItemUseSystem {
             mut backpack,
             mut particle_builder,
             positions,
+            provides_food,
+            mut hunger_clocks,
         ) = data;
 
         for (entity, useitem) in (&entities, &wants_use).join() {
@@ -306,6 +310,25 @@ impl<'a> System<'a> for ItemUseSystem {
                     if target == *player_entity {
                         gamelog.entries.push(format!(
                             "You equip {}.",
+                            names.get(useitem.item).unwrap().name
+                        ));
+                    }
+                }
+            }
+
+            // It it is edible, eat it!
+            let item_edible = provides_food.get(useitem.item);
+            match item_edible {
+                None => {}
+                Some(_) => {
+                    used_item = true;
+                    let target = targets[0];
+                    let hc = hunger_clocks.get_mut(target);
+                    if let Some(hc) = hc {
+                        hc.state = HungerState::WellFed;
+                        hc.duration = 20;
+                        gamelog.entries.push(format!(
+                            "You eat the {}.",
                             names.get(useitem.item).unwrap().name
                         ));
                     }

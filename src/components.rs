@@ -39,6 +39,25 @@ pub fn register_components(ecs: &mut World) {
     ecs.register::<DefenseBonus>();
     ecs.register::<WantsToRemoveItem>();
     ecs.register::<ParticleLifetime>();
+    ecs.register::<HungerClock>();
+    ecs.register::<ProvidesFood>();
+}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct ProvidesFood {}
+
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
+pub enum HungerState {
+    WellFed,
+    Normal,
+    Hungry,
+    Starving,
+}
+
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct HungerClock {
+    pub state: HungerState,
+    pub duration: i32,
 }
 
 #[derive(Component, Serialize, Deserialize, Clone)]

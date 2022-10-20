@@ -5,8 +5,8 @@ use specs::prelude::*;
 
 use super::CombatStats;
 use super::{
-    GameLog, Item, Map, Monster, Player, Position, State, TileType, Viewshed, WantsToMelee,
-    WantsToPickupItem,
+    GameLog, HungerClock, HungerState, Item, Map, Monster, Player, Position, State, TileType,
+    Viewshed, WantsToMelee, WantsToPickupItem,
 };
 use super::{RunState, MAPHEIGHT, MAPWIDTH};
 
@@ -138,8 +138,18 @@ fn skip_turn(ecs: &mut World) -> RunState {
         }
     }
 
+    let hunger_clocks = ecs.read_storage::<HungerClock>();
+    let hc = hunger_clocks.get(*player_entity);
+    if let Some(hc) = hc {
+        match hc.state {
+            HungerState::Hungry => can_heal = false,
+            HungerState::Starving => can_heal = false,
+            _ => {}
+        }
+    }
+
     let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-    if can_heal && rng.roll_dice(1, 4) == 2 {
+    if can_heal && rng.roll_dice(1, 3) == 2 {
         let mut health_components = ecs.write_storage::<CombatStats>();
         let player_hp = health_components.get_mut(*player_entity).unwrap();
         player_hp.hp = i32::min(player_hp.hp + 1, player_hp.max_hp);
