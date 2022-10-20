@@ -1,3 +1,4 @@
+use rltk::RandomNumberGenerator;
 use specs::prelude::*;
 
 use super::{CombatStats, GameLog, Map, Name, Player, Position, RunState, SufferDamage};
@@ -10,18 +11,21 @@ impl<'a> System<'a> for DamageSystem {
         WriteStorage<'a, SufferDamage>,
         ReadStorage<'a, Position>,
         WriteExpect<'a, Map>,
+        WriteExpect<'a, RandomNumberGenerator>,
         Entities<'a>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
-        let (mut stats, mut damage, positions, mut map, entities) = data;
+        let (mut stats, mut damage, positions, mut map, mut rng, entities) = data;
 
         for (entity, mut stats, damage) in (&entities, &mut stats, &damage).join() {
             stats.hp -= damage.amount.iter().sum::<i32>();
             let pos = positions.get(entity);
             if let Some(pos) = pos {
-                let idx = map.xy_idx(pos.x, pos.y);
-                map.bloodstains.insert(idx);
+                if rng.roll_dice(1, 4) == 2 {
+                    let idx = map.xy_idx(pos.x, pos.y);
+                    map.bloodstains.insert(idx);
+                }
             }
         }
 

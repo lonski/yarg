@@ -38,6 +38,12 @@ pub fn register_components(ecs: &mut World) {
     ecs.register::<MeleePowerBonus>();
     ecs.register::<DefenseBonus>();
     ecs.register::<WantsToRemoveItem>();
+    ecs.register::<ParticleLifetime>();
+}
+
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct ParticleLifetime {
+    pub lifetime_ms: f32,
 }
 
 #[derive(Component, Debug, ConvertSaveload, Clone)]

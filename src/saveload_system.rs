@@ -1,15 +1,16 @@
-use specs::prelude::*;
-use specs::saveload::{
-    DeserializeComponents, MarkedBuilder, SerializeComponents, SimpleMarker, SimpleMarkerAllocator,
-};
 use std::convert::Infallible;
 use std::fs;
 use std::fs::File;
 use std::path::Path;
 
-pub type NoError = Infallible;
+use specs::prelude::*;
+use specs::saveload::{
+    DeserializeComponents, MarkedBuilder, SerializeComponents, SimpleMarker, SimpleMarkerAllocator,
+};
+
 use super::components::*;
 
+pub type NoError = Infallible;
 macro_rules! serialize_individually {
     ($ecs:expr, $ser:expr, $data:expr, $( $type:ty),*) => {
         $(
@@ -73,7 +74,11 @@ pub fn save_game(ecs: &mut World) {
             WantsToDropItem,
             SerializationHelper,
             Equippable,
-            Equipped
+            Equipped,
+            MeleePowerBonus,
+            DefenseBonus,
+            WantsToRemoveItem,
+            ParticleLifetime
         );
     }
 
@@ -149,7 +154,11 @@ pub fn load_game(ecs: &mut World) {
             WantsToDropItem,
             SerializationHelper,
             Equippable,
-            Equipped
+            Equipped,
+            MeleePowerBonus,
+            DefenseBonus,
+            WantsToRemoveItem,
+            ParticleLifetime
         );
     }
 

@@ -12,6 +12,7 @@ pub use map::*;
 pub use map_indexing_system::*;
 pub use melee_combat_system::*;
 pub use monster_ai_system::*;
+pub use particle_system::ParticleBuilder;
 pub use player::*;
 pub use random_table::RandomTable;
 pub use rect::*;
@@ -26,6 +27,7 @@ mod map;
 mod map_indexing_system;
 mod melee_combat_system;
 mod monster_ai_system;
+mod particle_system;
 mod player;
 mod random_table;
 mod rect;
@@ -78,6 +80,8 @@ impl State {
         drop_items.run_now(&self.ecs);
         let mut item_remove = ItemRemoveSystem {};
         item_remove.run_now(&self.ecs);
+        let mut particles = particle_system::ParticleSpawnSystem {};
+        particles.run_now(&self.ecs);
         self.ecs.maintain();
     }
     fn entities_to_remove_on_level_change(&mut self) -> Vec<Entity> {
@@ -224,6 +228,7 @@ impl State {
 impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
         ctx.cls();
+        particle_system::cull_dead_particles(&mut self.ecs, ctx);
 
         let mut new_run_state;
         {
@@ -424,12 +429,13 @@ fn main() -> rltk::BError {
 
     register_components(&mut gs.ecs);
     gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
+    gs.ecs.insert(rltk::RandomNumberGenerator::new());
+    gs.ecs.insert(particle_system::ParticleBuilder::new());
 
     let map = Map::new_map_rooms_and_corridors(1);
     let (player_x, player_y) = map.rooms[0].center();
     let player_entity = spawner::player(&mut gs.ecs, player_x, player_y);
 
-    gs.ecs.insert(rltk::RandomNumberGenerator::new());
     for room in map.rooms.iter().skip(1) {
         spawner::spawn_room(&mut gs.ecs, room, 1);
     }
